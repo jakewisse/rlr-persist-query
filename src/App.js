@@ -1,35 +1,86 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import { push } from 'redux-little-router';
 import './App.css';
 
-class App extends Component {
+/**
+ * Create a 5 character random string
+ */
+function randomString() {
+  function* genChars(len) {
+    for (let i = 0; i < len; i++) {
+      yield String.fromCharCode(Math.floor(Math.random() * 26) + 97);
+    }
+  }
 
+  return [...genChars(5)].join('');
+}
+
+class App extends Component {
   state = {
-    devs: [
-      'Jake', 'Adam', 'JJ'
-    ]
+    key: randomString(),
+    value: randomString()
+  };
+
+  /**
+   * Dispatch `push()` with `persistQuery` with our random query string param.
+   */
+  handleClick = () => {
+    const { key, value } = this.state;
+    this.props.push(
+      {
+        pathname: '/',
+        query: { [key]: value }
+      },
+      { persistQuery: true }
+    );
+    this.setState({
+      key: randomString(),
+      value: randomString()
+    });
+  };
+
+  handleOtherClick = () => {
+    const input = document.getElementById('path-input');
+    const { value } = input;
+    this.props.push(
+      {
+        pathname: value
+      },
+      { persistQuery: true }
+    );
+    input.value = '';
   };
 
   render() {
-    return (<div>
-      <h3>Here's a list of developers</h3>
-      <List items={this.state.devs} />
-      <textarea 
-        rows={10} 
-        cols={80} 
-        value={this.state.devs.join('\n')} 
-        onChange={(e) => {
-          const { value } = e.target;
-          this.setState({ devs: value.split('\n') });
-        }}
-      />
-    </div>);
+    return (
+      <div style={{ margin: '12px' }}>
+        <h4>Router state:</h4>
+        <pre>
+          {JSON.stringify(this.props.routerState, null, 2)}
+        </pre>
+
+        <div>
+          <label>
+            Click to `push` a random query string parameter:&nbsp;
+            <button onClick={this.handleClick}>
+              {JSON.stringify(this.state, null, 2)}
+            </button>
+          </label>
+        </div>
+        <div>
+          <label>
+            Click to `push` to the given url:&nbsp;
+            <button onClick={this.handleOtherClick}>Do it</button>
+          </label>
+          <input type="text" width={100} id="path-input" />
+        </div>
+      </div>
+    );
   }
 }
 
-const Item = props => <div>Item: {props.text}</div>;
-
-const List = props => (<div>
-  {props.items.map(i => <Item text={i} key={i} />)}
-</div>);
-
-export default App;
+export default connect(
+  state => ({ routerState: state.router }),
+  dispatch => ({ push: (...args) => dispatch(push(...args)) })
+)(App);
